@@ -47,11 +47,13 @@
   .add-comment input { flex: 1; padding: 7px 10px; border-radius: 7px; border: 1px solid #ccc; font-size: 13px; color: #111; background: #fff; }
   .add-comment button { padding: 7px 14px; border-radius: 7px; border: 1px solid #16a34a; background: #4ade80; color: #14532d; font-size: 13px; cursor: pointer; font-weight: 600; }
   .add-comment button:hover { background: #22c55e; }
+  .save-indicator { font-size: 11px; color: #16a34a; margin-left: 8px; opacity: 0; transition: opacity 0.3s; }
+  .save-indicator.show { opacity: 1; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Calendrier partagé — Aurélie &amp; Grégory</h1>
+  <h1>Calendrier partagé — Aurélie &amp; Grégory <span class="save-indicator" id="save-indicator">✓ Sauvegardé</span></h1>
 
   <div class="legend">
     <div class="leg"><div class="dot" style="background:#f472b6"></div>Indispo Aurélie</div>
@@ -101,7 +103,21 @@ let currentUser = 'aurelie';
 let currentMonth = 0;
 let selectedDay = null;
 
-const state = { aurelie: {}, gregory: {}, comments: {} };
+// ✅ CHANGEMENT 1 : Charger les données depuis localStorage au démarrage
+// Si des données existent déjà dans le navigateur, on les récupère.
+// Sinon, on démarre avec un état vide.
+const saved = localStorage.getItem('calendrier-ag');
+const state = saved ? JSON.parse(saved) : { aurelie: {}, gregory: {}, comments: {} };
+
+// ✅ CHANGEMENT 2 : Fonction de sauvegarde dans localStorage
+// Appelée à chaque modification pour persister les données.
+function saveState() {
+  localStorage.setItem('calendrier-ag', JSON.stringify(state));
+  // Affichage de l'indicateur de sauvegarde
+  const indicator = document.getElementById('save-indicator');
+  indicator.classList.add('show');
+  setTimeout(() => indicator.classList.remove('show'), 1500);
+}
 
 function key(m, d) { return m + '-' + d; }
 
@@ -126,6 +142,8 @@ function toggleDay(d) {
   const k = key(currentMonth, d);
   if (currentUser === 'aurelie') state.aurelie[k] = !state.aurelie[k];
   else state.gregory[k] = !state.gregory[k];
+  // ✅ CHANGEMENT 3 : Sauvegarder après chaque clic sur un jour
+  saveState();
   renderGrid();
   const a = state.aurelie[k], g = state.gregory[k];
   if (!a && !g) { selectedDay = k; showCommentPanel(k, d); }
@@ -156,6 +174,8 @@ function addComment() {
   if (!state.comments[selectedDay]) state.comments[selectedDay] = [];
   state.comments[selectedDay].push({ user: currentUser === 'aurelie' ? 'Aurélie' : 'Grégory', text });
   input.value = '';
+  // ✅ CHANGEMENT 4 : Sauvegarder après chaque ajout de commentaire
+  saveState();
   renderComments(selectedDay);
   renderGrid();
 }
