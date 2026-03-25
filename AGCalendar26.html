@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendrier Aurélie & Grégory</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f9fafb; color: #111; padding: 1rem; }
+  .wrap { max-width: 780px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 1rem; color: #111; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #555; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .user-toggle { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .label-user { font-size: 13px; color: #555; }
+  .user-btn { padding: 6px 16px; border-radius: 20px; border: 1px solid #ccc; background: transparent; font-size: 13px; cursor: pointer; font-weight: 600; transition: all .15s; }
+  .user-btn.aurelie.active { background: #fce7f3; border-color: #f472b6; color: #9d174d; }
+  .user-btn.gregory.active { background: #dbeafe; border-color: #60a5fa; color: #1e3a8a; }
+  .user-btn:not(.active) { color: #888; }
+  .info-bar { font-size: 12px; color: #555; margin-bottom: 12px; padding: 8px 12px; background: #f3f4f6; border-radius: 8px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tab { padding: 5px 13px; border-radius: 20px; border: 1px solid #ccc; background: transparent; font-size: 13px; cursor: pointer; color: #555; transition: all .15s; }
+  .tab.active { background: #dbeafe; color: #1e3a8a; border-color: #60a5fa; }
+  .month-label { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: #111; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .day-header { text-align: center; font-size: 11px; color: #999; padding: 4px 0; font-weight: 600; }
+  .day { min-height: 42px; border-radius: 8px; border: 1px solid #e5e7eb; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all .15s; position: relative; }
+  .day:hover { border-color: #9ca3af; }
+  .day.empty { background: transparent; border-color: transparent; cursor: default; }
+  .day.off-a { background: #fce7f3; border-color: #f472b6; }
+  .day.off-g { background: #dbeafe; border-color: #60a5fa; }
+  .day.off-both { background: #ede9fe; border-color: #a855f7; }
+  .day.available { background: #dcfce7; border-color: #4ade80; }
+  .day-num { font-size: 13px; font-weight: 600; color: #111; }
+  .day.off-a .day-num { color: #9d174d; }
+  .day.off-g .day-num { color: #1e3a8a; }
+  .day.off-both .day-num { color: #6b21a8; }
+  .day.available .day-num { color: #14532d; }
+  .has-comment { position: absolute; top: 3px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: #f59e0b; }
+  .comment-panel { margin-top: 1.2rem; padding: 14px; border-radius: 10px; border: 1px solid #4ade80; background: #f0fdf4; }
+  .comment-panel h3 { font-size: 13px; font-weight: 600; color: #14532d; margin-bottom: 10px; }
+  .comment-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; max-height: 160px; overflow-y: auto; }
+  .comment-item { font-size: 12px; color: #444; background: #fff; padding: 6px 10px; border-radius: 6px; border: 1px solid #bbf7d0; }
+  .comment-item strong { color: #111; }
+  .add-comment { display: flex; gap: 8px; }
+  .add-comment input { flex: 1; padding: 7px 10px; border-radius: 7px; border: 1px solid #ccc; font-size: 13px; color: #111; background: #fff; }
+  .add-comment button { padding: 7px 14px; border-radius: 7px; border: 1px solid #16a34a; background: #4ade80; color: #14532d; font-size: 13px; cursor: pointer; font-weight: 600; }
+  .add-comment button:hover { background: #22c55e; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Calendrier partagé — Aurélie &amp; Grégory</h1>
+
+  <div class="legend">
+    <div class="leg"><div class="dot" style="background:#f472b6"></div>Indispo Aurélie</div>
+    <div class="leg"><div class="dot" style="background:#60a5fa"></div>Indispo Grégory</div>
+    <div class="leg"><div class="dot" style="background:#a855f7"></div>Indispo les deux</div>
+    <div class="leg"><div class="dot" style="background:#4ade80"></div>Dispo commun</div>
+    <div class="leg"><div class="dot" style="background:#e5e7eb;border:1px solid #ccc"></div>Non renseigné</div>
+  </div>
+
+  <div class="user-toggle">
+    <span class="label-user">Je suis :</span>
+    <button class="user-btn aurelie active" onclick="setUser('aurelie')">Aurélie</button>
+    <button class="user-btn gregory" onclick="setUser('gregory')">Grégory</button>
+  </div>
+
+  <div class="info-bar" id="info-bar">Connecté en tant qu'<strong>Aurélie</strong> — Cliquez sur un jour pour indiquer votre indisponibilité.</div>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="month-label" id="month-label"></div>
+  <div class="cal-grid" id="cal-grid"></div>
+
+  <div class="comment-panel" id="comment-panel" style="display:none">
+    <h3 id="comment-title">Disponibilité commune</h3>
+    <div class="comment-list" id="comment-list"></div>
+    <div class="add-comment">
+      <input type="text" id="comment-input" placeholder="Ajouter un commentaire pour ce jour...">
+      <button onclick="addComment()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const MONTHS = [
+  {name:"Avril",idx:3,year:2026},
+  {name:"Mai",idx:4,year:2026},
+  {name:"Juin",idx:5,year:2026},
+  {name:"Juillet",idx:6,year:2026},
+  {name:"Août",idx:7,year:2026},
+  {name:"Septembre",idx:8,year:2026},
+  {name:"Octobre",idx:9,year:2026},
+  {name:"Novembre",idx:10,year:2026},
+  {name:"Décembre",idx:11,year:2026}
+];
+const DAYS = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+
+let currentUser = 'aurelie';
+let currentMonth = 0;
+let selectedDay = null;
+
+const state = { aurelie: {}, gregory: {}, comments: {} };
+
+function key(m, d) { return m + '-' + d; }
+
+function setUser(u) {
+  currentUser = u;
+  document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.user-btn.' + u).classList.add('active');
+  document.getElementById('info-bar').innerHTML = 'Connecté en tant que <strong>' + (u === 'aurelie' ? 'Aurélie' : 'Grégory') + '</strong> — Cliquez sur un jour pour indiquer votre indisponibilité.';
+  renderGrid();
+}
+
+function setMonth(i) {
+  currentMonth = i;
+  selectedDay = null;
+  document.getElementById('comment-panel').style.display = 'none';
+  document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', j === i));
+  document.getElementById('month-label').textContent = MONTHS[i].name + ' ' + MONTHS[i].year;
+  renderGrid();
+}
+
+function toggleDay(d) {
+  const k = key(currentMonth, d);
+  if (currentUser === 'aurelie') state.aurelie[k] = !state.aurelie[k];
+  else state.gregory[k] = !state.gregory[k];
+  renderGrid();
+  const a = state.aurelie[k], g = state.gregory[k];
+  if (!a && !g) { selectedDay = k; showCommentPanel(k, d); }
+  else { document.getElementById('comment-panel').style.display = 'none'; selectedDay = null; }
+}
+
+function showCommentPanel(k, d) {
+  const m = MONTHS[currentMonth];
+  document.getElementById('comment-title').textContent = 'Disponibilité commune — ' + d + ' ' + m.name + ' ' + m.year;
+  renderComments(k);
+  document.getElementById('comment-panel').style.display = 'block';
+}
+
+function renderComments(k) {
+  const list = document.getElementById('comment-list');
+  const comments = state.comments[k] || [];
+  if (comments.length === 0) {
+    list.innerHTML = '<div style="font-size:12px;color:#999">Aucun commentaire pour ce jour.</div>';
+  } else {
+    list.innerHTML = comments.map(c => '<div class="comment-item"><strong>' + c.user + '</strong> : ' + c.text + '</div>').join('');
+  }
+}
+
+function addComment() {
+  const input = document.getElementById('comment-input');
+  const text = input.value.trim();
+  if (!text || !selectedDay) return;
+  if (!state.comments[selectedDay]) state.comments[selectedDay] = [];
+  state.comments[selectedDay].push({ user: currentUser === 'aurelie' ? 'Aurélie' : 'Grégory', text });
+  input.value = '';
+  renderComments(selectedDay);
+  renderGrid();
+}
+
+function renderGrid() {
+  const m = MONTHS[currentMonth];
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = DAYS.map(d => '<div class="day-header">' + d + '</div>').join('');
+  const firstDay = new Date(m.year, m.idx, 1).getDay();
+  const offset = firstDay === 0 ? 6 : firstDay - 1;
+  const daysInMonth = new Date(m.year, m.idx + 1, 0).getDate();
+  for (let i = 0; i < offset; i++) grid.innerHTML += '<div class="day empty"></div>';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const k = key(currentMonth, d);
+    const a = state.aurelie[k], g = state.gregory[k];
+    let cls = 'day';
+    if (a && g) cls += ' off-both';
+    else if (a) cls += ' off-a';
+    else if (g) cls += ' off-g';
+    else cls += ' available';
+    const hasC = (state.comments[k] || []).length > 0;
+    grid.innerHTML += '<div class="' + cls + '" onclick="toggleDay(' + d + ')"><div class="day-num">' + d + '</div>' + (hasC ? '<div class="has-comment"></div>' : '') + '</div>';
+  }
+}
+
+function init() {
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = MONTHS.map((m, i) => '<button class="tab' + (i === 0 ? ' active' : '') + '" onclick="setMonth(' + i + ')">' + m.name + '</button>').join('');
+  document.getElementById('month-label').textContent = MONTHS[0].name + ' ' + MONTHS[0].year;
+  renderGrid();
+}
+
+init();
+</script>
+</body>
+</html>
